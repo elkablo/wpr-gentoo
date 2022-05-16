@@ -2,9 +2,8 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
-inherit go-module
 
-EGIT_COMMIT=57c353ca10632889d961e58f8acc5ca671c2c17b
+inherit go-module
 
 EGO_SUM=(
 	"github.com/BurntSushi/toml v0.3.1/go.mod"
@@ -18,8 +17,8 @@ EGO_SUM=(
 	"github.com/russross/blackfriday/v2 v2.0.1/go.mod"
 	"github.com/shurcooL/sanitized_anchor_name v1.0.0"
 	"github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod"
-	"github.com/urfave/cli v1.22.4"
-	"github.com/urfave/cli v1.22.4/go.mod"
+	"github.com/urfave/cli/v2 v2.3.0"
+	"github.com/urfave/cli/v2 v2.3.0/go.mod"
 	"golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod"
 	"golang.org/x/net v0.0.0-20200602114024-627f9648deb9"
 	"golang.org/x/net v0.0.0-20200602114024-627f9648deb9/go.mod"
@@ -28,22 +27,20 @@ EGO_SUM=(
 	"golang.org/x/text v0.3.0"
 	"golang.org/x/text v0.3.0/go.mod"
 	"gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod"
-	"gopkg.in/yaml.v2 v2.2.2/go.mod"
+	"gopkg.in/yaml.v2 v2.2.3/go.mod"
 	)
 go-module_set_globals
 
-SRC_URI="https://chromium.googlesource.com/catapult/+archive/${EGIT_COMMIT}.tar.gz -> catapult-${PV}.tar.gz
+SRC_URI="https://github.com/elkablo/web_page_replay_go/archive/refs/tags/v${PV}.tar.gz -> ${P}.tar.gz
 	${EGO_SUM_SRC_URI}"
+S="${WORKDIR}/${P}/src"
 
 DESCRIPTION="A performance testing tool for recording and replaying web pages"
 HOMEPAGE="https://chromium.googlesource.com/catapult/+/refs/heads/main/web_page_replay_go/"
 
 LICENSE="BSD"
 SLOT="0"
-KEYWORDS="amd64 ~arm ~arm64 ~x86"
-IUSE=""
-
-S=${WORKDIR}/web_page_replay_go/src
+KEYWORDS="~amd64 ~arm ~arm64 ~x86"
 
 src_unpack() {
 	go-module_src_unpack
@@ -59,14 +56,16 @@ src_prepare() {
 	# default certificate, key and inject script in /usr/share/web_page_replay_go
 	local f
 	for f in wpr.go webpagereplay/legacyformatconvertor.go; do
-		sed -i -e 's^"\(wpr_cert\.pem\|wpr_key\.pem\|deterministic\.js\)"^"/usr/share/web_page_replay_go/\1"^' "${f}"
+		sed -i -e 's^"\(wpr_cert\.pem\|wpr_key\.pem\|deterministic\.js\)"^"/usr/share/web_page_replay_go/\1"^' "${f}" || die "sed-editing ${f} failed"
 	done
 }
 
 src_compile() {
-	go build -mod=mod wpr.go && \
-		go build -mod=mod httparchive.go || \
-		die "compile failed"
+	local t
+
+	for t in wpr.go httparchive.go; do
+		go build ${GOFLAGS} -mod=mod "${t}" || die "compiling ${t} failed"
+	done
 }
 
 src_install() {
